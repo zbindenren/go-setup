@@ -19,7 +19,7 @@ const usage = `
 Small utility to setup a golang project for CI environments.
 
 Example:
-	GOPATH=/tmp/golang PACKAGE_PATH=github.com/zbindenren/setup setup
+	GOPATH=/tmp/golang PACKAGE_PATH=github.com/zbindenren/go-setup go-setup
 
 creates:
 	- directory /tmp/golang/src/github.com/zbindenren

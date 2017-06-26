@@ -13,6 +13,7 @@ var clean bool
 const (
 	goPath  = "GOPATH"
 	pkgPath = "PACKAGE_PATH"
+	srcPath = "SRC_PATH"
 )
 
 const usage = `
@@ -58,7 +59,12 @@ func main() {
 		log.Printf("removed directory %s", gopath)
 		os.Exit(0)
 	}
-	oldName, err := filepath.Abs(".")
+	src := "."
+	if len(os.Getenv(srcPath)) > 0 {
+		src = os.Getenv(srcPath)
+	}
+
+	oldName, err := filepath.Abs(src)
 	if err != nil {
 		log.Fatalf("could not detect working directory: %s", err)
 	}

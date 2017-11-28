@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path"
 	"path/filepath"
 )
 
@@ -23,7 +24,7 @@ Example:
 	GOPATH=/tmp/golang PACKAGE_PATH=github.com/zbindenren/go-setup go-setup
 
 creates:
-	- directory /tmp/golang/src/github.com/zbindenren
+	- directory /tmp/golang/src/github.com
 	- link: /tmp/golang/src/github.com/zbindenren -> CWD
 
 Flags:
@@ -46,43 +47,67 @@ func main() {
 	if len(packagePath) == 0 {
 		log.Fatalf("environment variable %s is not defined or empty string", pkgPath)
 	}
-	newName := filepath.Join(gopath, "src", packagePath)
 
-	linkExists, err := isLink(newName)
-	if err != nil {
-		log.Fatalf("could not determine if %s is link: %s", newName, err)
-	}
 	if clean {
-		if linkExists {
-			os.RemoveAll(gopath)
+		err := cleanUp(gopath, packagePath)
+		if err != nil {
+			log.Fatal(err)
 		}
-		log.Printf("removed directory %s", gopath)
-		os.Exit(0)
+		return
 	}
+
 	src := "."
 	if len(os.Getenv(srcPath)) > 0 {
 		src = os.Getenv(srcPath)
 	}
-
-	oldName, err := filepath.Abs(src)
+	msg, err := setup(gopath, packagePath, src)
 	if err != nil {
-		log.Fatalf("could not detect working directory: %s", err)
+		log.Fatal(err)
+	}
+	log.Printf(msg)
+
+}
+
+func cleanUp(gopath, packagePath string) error {
+	new := newName(gopath, packagePath)
+	linkExists, err := isLink(new)
+	if err != nil {
+		return fmt.Errorf("could not determine if %s is link: %s", new, err)
 	}
 	if linkExists {
-		log.Printf("link %s -> %s already exists, nothing to do", newName, oldName)
-		os.Exit(0)
+		os.RemoveAll(gopath)
 	}
-	parentDir := filepath.Join(filepath.Dir(newName))
+	return nil
+}
+
+func setup(gopath, packagePath, src string) (string, error) {
+	new := newName(gopath, packagePath)
+	oldName, err := filepath.Abs(src)
+	if err != nil {
+		return "", fmt.Errorf("could not detect working directory: %s", err)
+	}
+	linkExists, err := isLink(new)
+	if err != nil {
+		return "", fmt.Errorf("could not determine if %s is link: %s", new, err)
+	}
+	if linkExists {
+		return fmt.Sprintf("link %s -> %s already exists, nothing to do", new, oldName), nil
+	}
+	parentDir := filepath.Join(filepath.Dir(new))
 	err = os.MkdirAll(parentDir, 0755)
 	if err != nil {
-		log.Fatalf("could not create directory %s: %s", parentDir, err)
+		return "", fmt.Errorf("could not create directory %s: %s", parentDir, err)
 	}
-	log.Printf("created directory %s", parentDir)
-	err = os.Symlink(oldName, newName)
+	err = os.Symlink(path.Dir(oldName), new)
 	if err != nil {
-		log.Fatalf("could not create symlink %s -> %s: %s", newName, oldName, err)
+		return "", fmt.Errorf("could not create symlink %s -> %s: %s", new, oldName, err)
 	}
-	log.Printf("created symbolic link %s -> %s", newName, oldName)
+	return fmt.Sprintf("created symbolic link %s -> %s", new, oldName), nil
+}
+
+// newName is the link name.
+func newName(gopath, packagePath string) string {
+	return path.Dir(filepath.Join(gopath, "src", packagePath))
 }
 
 func isLink(path string) (bool, error) {

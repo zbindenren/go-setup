@@ -25,7 +25,7 @@ Example:
 
 creates:
 	- directory /tmp/golang/src/github.com
-	- link: /tmp/golang/src/github.com/zbindenren -> CWD
+	- link: /tmp/golang/src/github.com/zbindenren -> $(direname .)
 
 Flags:
 `
